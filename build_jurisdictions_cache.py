@@ -4,7 +4,7 @@ import time
 import streamlit as st
 
 headers = {"Authorization": f"Token {st.secrets['MUCKROCK_API_TOKEN']}"}
-jurisdiction_cache_file = "jurisdiction_cache1.json"
+jurisdiction_cache_file = "jurisdiction_cache.json"
 
 def fetch_all_jurisdictions():
     
@@ -32,7 +32,7 @@ def fetch_all_jurisdictions():
         print(f"Fetched {len(jurisdictions)} jurisdictions")
 
         
-        time.sleep(10)
+        time.sleep(5)
 
         if len(jurisdictions) % 1000 == 0:
             with open(jurisdiction_cache_file, "w") as f:

@@ -131,7 +131,7 @@ if st.button("Search") and search_term:
         df["datetime_done"] = df["datetime_done"].fillna("Pending")
 
         df["agency_path"] = df["agency"].map(
-            lambda x: f"{agency_lookup.get(int(x), {}).get('slug')}-{agency_lookup.get(int(x), {}).get('jurisdiction_id')}"
+            lambda x: f"{agency_lookup.get(int(x), {}).get('jurisdiction_slug')}-{agency_lookup.get(int(x), {}).get('jurisdiction_id')}"
         )
 
         df["request_path"] = df["slug"] + "-" + df["id"].astype(str)
@@ -158,12 +158,27 @@ if st.button("Search") and search_term:
 
         })
         st.subheader("All Requests")
-        st.dataframe(df)
 
-        # Excel download
         st.download_button(
             label="Download as Excel",
             data=to_excel(df),
             file_name=f"{search_term}_foia_requests.xlsx",
             mime="application/vnd.ms-excel"
         )
+
+        
+        
+        st.dataframe(
+            df,
+            column_config={
+                "Link to Request": st.column_config.LinkColumn(
+                    label="View Request",
+                    display_text="View Request"
+                )
+            },
+            hide_index=True
+        )
+
+
+        # Excel download
+        
