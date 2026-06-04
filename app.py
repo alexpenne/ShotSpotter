@@ -3,9 +3,11 @@ import requests
 import pandas as pd 
 from io import BytesIO
 import time 
+import plotly.graph_objects as go
+
+headers = {"Authorization": f"Token {st.secrets['MUCKROCK_API_TOKEN']}"}
 
 def fetch_requests(search_time):
-    headers = {"Authorization": f"Token {st.secrets['MUCKROCK_API_TOKEN']}"}
     all_requests = []
     url = f"https://www.muckrock.com/api_v2/requests/?search={search_term}&page_size=100"
 
@@ -19,6 +21,7 @@ def fetch_requests(search_time):
         url = data['next']
 
     return all_requests
+
 
 def to_excel(df):
     buffer = BytesIO()
@@ -36,16 +39,39 @@ if st.button("Search") and search_term:
     if not results:
         st.warning("No results found.")
     else:
+        
+
         df = pd.DataFrame(results)
-        df = df[['id', 'title', 'status', 'agency', 'datetime_submitted', 'datetime_done', 'requested_docs']]
+        
+        df = df[['id', 'title', 'status', 'datetime_submitted', 'datetime_done', 'requested_docs']]
 
         st.subheader(f"Found {len(results)} requests")
 
         # Status breakdown
         st.subheader("Status Breakdown")
-        status_counts = df['status'].value_counts().reset_index()
-        status_counts.columns = ['Status', 'Count']
-        st.bar_chart(status_counts.set_index('Status'))
+
+        status_groups = {
+            "Completed": df['status'].isin(['done', 'partial']).sum(),
+            "Rejected": df['status'].isin(['rejected']).sum(),
+            "Awaiting Response": df['status'].isin(['ack', 'processed']).sum(),
+            "No Documents Found": df['status'].isin(['no_docs']).sum()
+        }
+
+        colors = {
+            "Completed": "#2ecc71",       # green
+            "Rejected": "#e74c3c",        # red
+            "Awaiting Response": "#f1c40f", # yellow
+            "No Documents Found": "#95a5a6" # gray
+        }
+
+        fig = go.Figure([go.Bar(
+            x=list(status_groups.keys()),
+            y=list(status_groups.values()),
+            marker_color=[colors[k] for k in status_groups.keys()]
+        )])
+
+        fig.update_layout(yaxis_title="Number of Requests")
+        st.plotly_chart(fig)
 
         # Success rate
         success = df['status'].isin(['done', 'partial']).sum()
