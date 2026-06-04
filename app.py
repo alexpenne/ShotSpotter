@@ -4,8 +4,14 @@ import pandas as pd
 from io import BytesIO
 import time 
 import plotly.graph_objects as go
+import json
 
 headers = {"Authorization": f"Token {st.secrets['MUCKROCK_API_TOKEN']}"}
+
+def load_agency_lookup():
+    with open("agency_enriched.json", "r") as f:
+        data = json.load(f)
+    return {int(k): v for k, v in data.items()}
 
 def fetch_requests(search_time):
     all_requests = []
@@ -43,7 +49,21 @@ if st.button("Search") and search_term:
 
         df = pd.DataFrame(results)
         
-        df = df[['id', 'title', 'status', 'datetime_submitted', 'datetime_done', 'requested_docs']]
+        
+        
+        agency_lookup = load_agency_lookup()
+        
+        df["agency_name"] = df["agency"].map(
+            lambda x: agency_lookup.get(x, {}).get("name", "Unknown")
+        )
+
+        df["jurisdiction"] = df["agency"].map(
+            lambda x: agency_lookup.get(x, {}).get("jurisdiction_name", "Unknown")
+        )
+
+        
+
+        
 
         st.subheader(f"Found {len(results)} requests")
 
@@ -78,7 +98,65 @@ if st.button("Search") and search_term:
         rate = round((success / len(df)) * 100, 1)
         st.metric("Success Rate (docs received)", f"{rate}%")
 
+
+
         # Results table
+
+        # Rename Statuses
+
+        status_map = {
+            "done": "Completed",
+            "partial": "Partially Completed",
+            "rejected": "Rejected",
+            "ack": "Awaiting Acknowledgment",
+            "processed": "Awaiting Response",
+            "no_docs": "No Documents Found"
+        }
+
+        df["status"] = df["status"].map(status_map)
+
+        # Change Times
+        df["datetime_submitted"] = pd.to_datetime(df["datetime_submitted"], format="ISO8601", errors="coerce", utc=True)
+        df["datetime_done"] = pd.to_datetime(df["datetime_done"], format="ISO8601", errors="coerce", utc=True)
+
+        df["days_to_completion"] = (df["datetime_done"] - df["datetime_submitted"]).dt.days
+        df["days_to_completion"] = df["days_to_completion"].fillna("Pending")
+        df["days_to_completion"] = df["days_to_completion"].apply(
+            lambda x: int(x) if pd.notnull(x) and x != "Pending" else x
+        )
+
+        
+        df["datetime_submitted"] = df["datetime_submitted"].dt.strftime("%m/%d/%Y")
+        df["datetime_done"] = df["datetime_done"].dt.strftime("%m/%d/%Y")
+        df["datetime_done"] = df["datetime_done"].fillna("Pending")
+
+        df["agency_path"] = df["agency"].map(
+            lambda x: f"{agency_lookup.get(int(x), {}).get('slug')}-{agency_lookup.get(int(x), {}).get('jurisdiction_id')}"
+        )
+
+        df["request_path"] = df["slug"] + "-" + df["id"].astype(str)
+
+        df["request_URL"] = df.apply(
+            lambda row: f"https://www.muckrock.com/foi/{row['agency_path']}/{row['request_path']}/",
+            axis=1
+        )
+
+        df = df[['id', 'title', 'jurisdiction', 'agency_name', 'status', 'datetime_submitted', 'datetime_done', 'days_to_completion', 'requested_docs', 'request_URL']]
+
+        # Rename Columns
+        df = df.rename(columns={
+            "id":"ID",
+            "title": "Title",
+            "agency_name": "Agency Name",
+            "jurisdiction": "Jurisdiction",
+            "status": "Status",
+            "datetime_submitted": "Date Submitted",
+            "datetime_done": "Date Completed",
+            "requested_docs": "Documents Requested",
+            "days_to_completion": "Days to Completion",
+            "request_URL": "Link to Request"
+
+        })
         st.subheader("All Requests")
         st.dataframe(df)
 
