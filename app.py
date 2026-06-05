@@ -36,6 +36,7 @@ def to_excel(df):
 
 st.title("FOIA Request Explorer")
 st.write("Search MuckRock's database of public records requests.")
+st.write("Made for Chicago Justice Project. Questions or suggestions? Email alex.penne@us.dlapiper.com.")
 
 search_term = st.text_input("Search term", placeholder="e.g. Shotspotter, facial recognition")
 if st.button("Search") and search_term:
