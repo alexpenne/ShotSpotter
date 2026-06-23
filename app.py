@@ -6,7 +6,20 @@ import time
 import plotly.graph_objects as go
 import json
 
-headers = {"Authorization": f"Token {st.secrets['MUCKROCK_API_TOKEN']}"}
+def get_access_token():
+    response = requests.post(
+        "https://accounts.muckrock.com/api/token/",
+        data={
+            "username": st.secrets["MUCKROCK_USERNAME"],
+            "password": st.secrets["MUCKROCK_PASSWORD"]
+        }
+    )
+    data = response.json()
+    return data["access"], data["refresh"]
+
+
+access_token, refresh_token = get_access_token()
+headers = {"Authorization": f"Bearer {access_token}"}
 
 def load_agency_lookup():
     with open("agency_enriched.json", "r") as f:
