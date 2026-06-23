@@ -48,8 +48,9 @@ def to_excel(df):
     return buffer.getvalue()
 
 st.title("FOIA Request Explorer")
-st.write("Search MuckRock's database of public records requests.")
-st.write("Made for Chicago Justice Project. Questions or suggestions? Email alex.penne@us.dlapiper.com.")
+st.write("Search [MuckRock's](https://www.muckrock.com/) database of public records requests.")
+st.write("Made for Chicago Justice Project.")
+st.write("If you encounter an error or infinite loading time, refresh the page and try again. If the error persists, please contact Alex Penne at alex.penne@us.dlapiper.com.")
 
 search_term = st.text_input("Search term", placeholder="e.g. Shotspotter, facial recognition")
 if st.button("Search") and search_term:
